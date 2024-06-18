@@ -1,3 +1,7 @@
+# This project is sponsored by DJ Fuzuli.
+# - SoundCloud: https://soundcloud.com/djfuzuli
+# - MixCloud: https://www.mixcloud.com/DJFuzuli/
+
 import asyncio
 import sys
 import os
