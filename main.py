@@ -30,20 +30,14 @@ def yt_search(name):
 
   return (result['title'], result['id'])
 
-def process(d):
-  print("Dict: ", d)
-
 async def main():
   track_ids = read_shazam_track_ids()
 
   shazam = Shazam()
   ydl_opts = {
-    # 'simulate': True,
-    # 'forcefilename': True,
     'overwrites': False,
     'outtmpl': 'shazamlibrary/%(title)s.%(ext)s',
     'format': 'mp3/bestaudio/best',
-    # 'progress_hooks': [process],
     'postprocessors': [{  # Extract audio using ffmpeg
         'key': 'FFmpegExtractAudio',
         'preferredcodec': AUDIO_EXTENSION,
@@ -55,17 +49,9 @@ async def main():
         print(f"Shazam: Reading track information for id {track_id}")
         about_track = await shazam.track_about(track_id=track_id)
         serialized = Serialize.track(data=about_track)
-        # searching for 'title - subtitle' which converts to 'singer - song'
-        name = serialized.title + " - " + serialized.subtitle
-        (title, id) = yt_search(name)
+        (title, id) = yt_search(serialized.title + " - " + serialized.subtitle)
         url = f"https://www.youtube.com/watch?v={id}"
-        # info = ydl.extract_info(url, download=False)
-        # info_with_audio_extension = dict(info)
-        # info_with_audio_extension['ext'] = AUDIO_EXTENSION
-        # filename = ydl.prepare_filename(info_with_audio_extension)
-        # if os.path.isfile(filename):
-        #   print(f"Downloader: '{filename}' already exists, skipping")
-        #   continue
+        print(f"YouTube: Downloading '{title}'")
         ydl.download([url])
       except Exception as e:
         print(e)
