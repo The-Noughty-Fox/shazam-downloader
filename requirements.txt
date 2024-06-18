@@ -1,0 +1,6 @@
+aiohttp==3.8.4
+pandas==2.2.2
+youtube_search @ git+https://github.com/XniceCraft/youtube_search@v3.0.2
+setuptools==63.2.0
+shazamio==0.6.0
+yt_dlp==2024.5.27
