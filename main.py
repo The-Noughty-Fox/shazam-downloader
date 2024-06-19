@@ -19,10 +19,13 @@ YDL_OPTS = {
   'format': 'mp3/bestaudio/best',
   'postprocessors': [{  # Extract audio using ffmpeg
       'key': 'FFmpegExtractAudio',
-      'preferredcodec': AUDIO_EXTENSION,
+      'preferredcodec': AUDIO_EXTENSION
   }]
 }
 ERROR_LOG_FILE = "error_logs.txt"
+
+if '--local-ffmpeg' in sys.argv:
+  YDL_OPTS['ffmpeg_location'] = '.'
 
 def read_shazam_track_ids():
   # Read the CSV file
