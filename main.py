@@ -13,6 +13,14 @@ from yt_dlp import YoutubeDL
 import youtube_search
 
 AUDIO_EXTENSION = 'mp3'
+YDL_OPTS = {
+    'overwrites': False,
+    'format': 'mp3/bestaudio/best',
+    'postprocessors': [{  # Extract audio using ffmpeg
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': AUDIO_EXTENSION,
+    }]
+  }
 
 def read_shazam_track_ids():
   # Read the CSV file
@@ -32,29 +40,28 @@ def yt_search(name):
 
 async def main():
   track_ids = read_shazam_track_ids()
-
   shazam = Shazam()
-  ydl_opts = {
-    'overwrites': False,
-    'outtmpl': 'shazamlibrary/%(title)s.%(ext)s',
-    'format': 'mp3/bestaudio/best',
-    'postprocessors': [{  # Extract audio using ffmpeg
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': AUDIO_EXTENSION,
-    }]
-  }
-  with YoutubeDL(ydl_opts) as ydl:
-    for track_id in track_ids:
-      try:
-        print(f"Shazam: Reading track information for id {track_id}")
-        about_track = await shazam.track_about(track_id=track_id)
-        serialized = Serialize.track(data=about_track)
-        (title, id) = yt_search(serialized.title + " - " + serialized.subtitle)
-        url = f"https://www.youtube.com/watch?v={id}"
-        print(f"YouTube: Downloading '{title}'")
+  for track_id in track_ids:
+    try:
+      print(f"Shazam: Reading track information for id {track_id}")
+      about_track = await shazam.track_about(track_id=track_id)
+      serialized = Serialize.track(data=about_track)
+      title = serialized.title + " - " + serialized.subtitle
+
+      song_section = next(section for section in serialized.sections if section.type == 'SONG')
+      if song_section:
+        label = next(m.text for m in song_section.metadata if m.title == 'Label')
+      (yt_title, id) = yt_search(title)
+      full_title = title if not label else f"{title} [{label}]"
+
+      url = f"https://www.youtube.com/watch?v={id}"
+      print(f"YouTube: Downloading '{title}'")
+      opts = YDL_OPTS.copy()
+      opts['outtmpl'] = f"shazamlibrary/{full_title}.%(ext)s"
+      with YoutubeDL(opts) as ydl:
         ydl.download([url])
-      except Exception as e:
-        print(e)
+    except Exception as e:
+      print(e)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
