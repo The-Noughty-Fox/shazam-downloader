@@ -50,7 +50,7 @@ async def main():
       print(f"Shazam: Reading track information for id {track_id}")
       about_track = await shazam.track_about(track_id=track_id)
       serialized = Serialize.track(data=about_track)
-      title = serialized.title + " - " + serialized.subtitle
+      title = serialized.subtitle + " - " + serialized.title
 
       song_section = next(section for section in serialized.sections if section.type == 'SONG')
       if song_section:
