@@ -5,6 +5,7 @@
 import asyncio
 import sys
 import os
+import traceback
 
 from shazamio import Shazam, Serialize
 
@@ -14,13 +15,14 @@ import youtube_search
 
 AUDIO_EXTENSION = 'mp3'
 YDL_OPTS = {
-    'overwrites': False,
-    'format': 'mp3/bestaudio/best',
-    'postprocessors': [{  # Extract audio using ffmpeg
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': AUDIO_EXTENSION,
-    }]
-  }
+  'overwrites': False,
+  'format': 'mp3/bestaudio/best',
+  'postprocessors': [{  # Extract audio using ffmpeg
+      'key': 'FFmpegExtractAudio',
+      'preferredcodec': AUDIO_EXTENSION,
+  }]
+}
+ERROR_LOG_FILE = "error_logs.txt"
 
 def read_shazam_track_ids():
   # Read the CSV file
@@ -41,6 +43,8 @@ def yt_search(name):
 async def main():
   track_ids = read_shazam_track_ids()
   shazam = Shazam()
+  if os.path.exists(ERROR_LOG_FILE):
+    os.remove(ERROR_LOG_FILE)
   for track_id in track_ids:
     try:
       print(f"Shazam: Reading track information for id {track_id}")
@@ -61,6 +65,9 @@ async def main():
       with YoutubeDL(opts) as ydl:
         ydl.download([url])
     except Exception as e:
+      logf = open(ERROR_LOG_FILE, "a")
+      logf.write(f"{traceback.format_exc()}\n")
+      logf.close()
       print(e)
 
 loop = asyncio.get_event_loop()
