@@ -18,3 +18,10 @@ brew install ffmpeg
 ```bash
 python main.py shazamlibrary.csv
 ```
+
+## Shazam Library Download
+
+1. Visit https://shazam.com in your favorite browser.
+2. Scroll all the way to the bottom of the page and click the "My Library" link found at the bottom right corner, under Legal.
+3. Complete the sign in process normally.
+4. Click the Download CSV link found immediately below the My Library banner, on the right.
