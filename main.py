@@ -52,9 +52,9 @@ async def main():
       serialized = Serialize.track(data=about_track)
       title = serialized.subtitle + " - " + serialized.title
 
-      song_section = next(section for section in serialized.sections if section.type == 'SONG')
+      song_section = next(section for section in serialized.sections if section.type == 'SONG', None)
       if song_section:
-        label = next(m.text for m in song_section.metadata if m.title == 'Label')
+        label = next(m.text for m in song_section.metadata if m.title == 'Label', None)
       (yt_title, id) = yt_search(title)
       full_title = title if not label else f"{title} [{label}]"
 
