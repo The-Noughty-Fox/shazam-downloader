@@ -6,6 +6,8 @@ import asyncio
 import sys
 import os
 import traceback
+import re
+import unicodedata
 
 from shazamio import Shazam, Serialize
 
@@ -32,6 +34,9 @@ def read_shazam_track_ids():
   # Extract the Track IDs
   return df['TrackKey'].unique().tolist()
 
+def get_valid_filename(value):
+  return re.sub(r'[\/:*?"<>|\\]', '_', value).strip("-_\n ")
+
 def yt_search(name):
   with youtube_search.YoutubeSearch() as ytsearch:
     print(f"YouTube: Searching for '{name}'")
@@ -56,7 +61,7 @@ async def main():
       if song_section:
         label = next((m.text for m in song_section.metadata if m.title == 'Label'), None)
       (yt_title, id) = yt_search(title)
-      full_title = title if not label else f"{title} [{label.replace('/', '|')}]"
+      full_title = get_valid_filename(title) if not label else get_valid_filename(f"{title} [{label}]")
 
       url = f"https://www.youtube.com/watch?v={id}"
       print(f"YouTube: Downloading '{title}'")
