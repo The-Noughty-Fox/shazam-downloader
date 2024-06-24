@@ -12,7 +12,7 @@ import unicodedata
 from shazamio import Shazam, Serialize
 
 import pandas as pd
-from yt_dlp import YoutubeDL
+import yt_dlp
 import youtube_search
 
 AUDIO_EXTENSION = 'mp3'
@@ -45,30 +45,45 @@ def yt_search(name):
 
   return (result['title'], result['id'])
 
-async def main():
-  track_ids = read_shazam_track_ids()
-  shazam = Shazam()
+def remove_log_file_if_exists():
   if os.path.exists(ERROR_LOG_FILE):
     os.remove(ERROR_LOG_FILE)
-  for track_id in track_ids:
+
+shazam = Shazam()
+
+async def process_track_id(id, error_counter=0):
+  try:
+    print(f"Shazam: Reading track information for id {id}")
+    about_track = await shazam.track_about(track_id=id)
+    serialized = Serialize.track(data=about_track)
+    title = serialized.subtitle + " - " + serialized.title
+
+    song_section = next((section for section in serialized.sections if section.type == 'SONG'), None)
+    if song_section:
+      label = next((m.text for m in song_section.metadata if m.title == 'Label'), None)
+    (yt_title, id) = yt_search(title)
+    full_title = get_valid_filename(title) if not label else get_valid_filename(f"{title} [{label}]")
+
+    url = f"https://www.youtube.com/watch?v={id}"
+    print(f"YouTube: Downloading '{title}'")
+    opts = YDL_OPTS.copy()
+    opts['outtmpl'] = f"shazamlibrary/{full_title}.%(ext)s"
+    with yt_dlp.YoutubeDL(opts) as ydl:
+      ydl.download([url])
+  except yt_dlp.networking.exceptions.HTTPError as e:
+    if error_counter < 3:
+      print(f"YouTube: Retrying because {str(e)}")
+      process_track_id(id, error_counter + 1)
+    else:
+      raise e
+
+
+async def main():
+  remove_log_file_if_exists()
+  track_ids = read_shazam_track_ids()
+  for id in track_ids:
     try:
-      print(f"Shazam: Reading track information for id {track_id}")
-      about_track = await shazam.track_about(track_id=track_id)
-      serialized = Serialize.track(data=about_track)
-      title = serialized.subtitle + " - " + serialized.title
-
-      song_section = next((section for section in serialized.sections if section.type == 'SONG'), None)
-      if song_section:
-        label = next((m.text for m in song_section.metadata if m.title == 'Label'), None)
-      (yt_title, id) = yt_search(title)
-      full_title = get_valid_filename(title) if not label else get_valid_filename(f"{title} [{label}]")
-
-      url = f"https://www.youtube.com/watch?v={id}"
-      print(f"YouTube: Downloading '{title}'")
-      opts = YDL_OPTS.copy()
-      opts['outtmpl'] = f"shazamlibrary/{full_title}.%(ext)s"
-      with YoutubeDL(opts) as ydl:
-        ydl.download([url])
+      await process_track_id(id)
     except Exception as e:
       logf = open(ERROR_LOG_FILE, "a")
       logf.write(f"{traceback.format_exc()}\n")
