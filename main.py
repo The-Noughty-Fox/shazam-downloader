@@ -8,6 +8,7 @@ import os
 import traceback
 import re
 import unicodedata
+from functools import reduce
 
 from shazamio import Shazam, Serialize
 
@@ -37,11 +38,21 @@ def read_shazam_track_ids():
 def get_valid_filename(value):
   return re.sub(r'[\/:*?"<>|\\]', '_', value).strip("-_\n ")
 
+def parse_duration_to_seconds(duration: str):
+  return reduce(
+    lambda sum, value: sum + 60 ** value[0] * int(value[1]),
+    enumerate(duration.split(':')[::-1]),
+    0
+  )
+
+def pick_best_yt_search_result(results):
+  return next((r for r in results if parse_duration_to_seconds(r['duration']) > 4 * 60), results[0])
+
 def yt_search(name):
   with youtube_search.YoutubeSearch() as ytsearch:
     print(f"YouTube: Searching for '{name}'")
     ytsearch.search(name)
-    result = ytsearch.list()[0]
+    result = pick_best_yt_search_result(ytsearch.list())
 
   return (result['title'], result['id'])
 
