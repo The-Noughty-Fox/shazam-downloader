@@ -27,13 +27,13 @@ YDL_OPTS = {
 }
 ERROR_LOG_FILE = "error_logs.txt"
 
-def read_shazam_track_ids():
+def read_shazam_tracks():
   # Read the CSV file
   file_path = sys.argv[1]
-  df = pd.read_csv(file_path, skiprows=1)
+  df = pd.read_csv(file_path)
   
   # Extract the Track IDs
-  return df['TrackKey'].unique().tolist()
+  return map(lambda el: el[0] + ' - ' + el[1], zip(df['artist'].tolist(), df['title'].tolist()))
 
 def get_valid_filename(value):
   return re.sub(r'[\/:*?"<>|\\]', '_', value).strip("-_\n ")
@@ -62,18 +62,18 @@ def remove_log_file_if_exists():
 
 shazam = Shazam()
 
-async def process_track_id(id, error_counter=0):
+async def process_track(title, error_counter=0):
   try:
-    print(f"Shazam: Reading track information for id {id}")
-    about_track = await shazam.track_about(track_id=id)
-    serialized = Serialize.track(data=about_track)
-    title = serialized.subtitle + " - " + serialized.title
+    # print(f"Shazam: Reading track information for id {id}")
+    # about_track = await shazam.track_about(track_id=id)
+    # serialized = Serialize.track(data=about_track)
+    # title = serialized.subtitle + " - " + serialized.title
 
-    song_section = next((section for section in serialized.sections if section.type == 'SONG'), None)
-    if song_section:
-      label = next((m.text for m in song_section.metadata if m.title == 'Label'), None)
+    # song_section = next((section for section in serialized.sections if section.type == 'SONG'), None)
+    # if song_section:
+    #   label = next((m.text for m in song_section.metadata if m.title == 'Label'), None)
     (yt_title, id) = yt_search(title)
-    full_title = get_valid_filename(title) if not label else get_valid_filename(f"{title} [{label}]")
+    full_title = get_valid_filename(title) # if not label else get_valid_filename(f"{title} [{label}]")
 
     url = f"https://www.youtube.com/watch?v={id}"
     print(f"YouTube: Downloading '{title}'")
@@ -91,17 +91,17 @@ async def process_track_id(id, error_counter=0):
 
 async def main():
   remove_log_file_if_exists()
-  track_ids = read_shazam_track_ids()
-  for id in track_ids:
+  tracks = read_shazam_tracks()
+  for title in tracks:
     try:
-      await process_track_id(id)
+      await process_track(title)
     except Exception as e:
       logf = open(ERROR_LOG_FILE, "a")
       logf.write(f"{traceback.format_exc()}\n")
       logf.close()
       print(e)
 
-loop = asyncio.get_event_loop()
+loop = asyncio.new_event_loop()
 loop.run_until_complete(main())
 
 
