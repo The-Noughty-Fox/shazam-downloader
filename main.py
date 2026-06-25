@@ -84,7 +84,7 @@ async def process_track(title, error_counter=0):
   except yt_dlp.networking.exceptions.HTTPError as e:
     if error_counter < 3:
       print(f"YouTube: Retrying because {str(e)}")
-      process_track_id(id, error_counter + 1)
+      await process_track(title, error_counter + 1)
     else:
       raise e
 
